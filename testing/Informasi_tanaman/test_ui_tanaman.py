@@ -1,0 +1,99 @@
+import os
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.select import Select
+from selenium.webdriver.chrome.options import Options
+import time
+
+def test_pencarian_tanaman():
+    chrome_options = Options()
+    # chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--disable-infobars")
+    chrome_options.add_argument("--disable-notifications")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option("useAutomationExtension", False)
+    chrome_options.add_experimental_option("prefs", {
+        "credentials_enable_service": False,
+        "profile.password_manager_enabled": False,
+        "safebrowsing.enabled": False
+    })
+    print(chrome_options.experimental_options)
+
+    driver = webdriver.Chrome(options=chrome_options)
+    try:
+        # 1. Login as user
+        driver.get("http://localhost:8000/login")
+        print("Attempting login...")
+
+        time.sleep(2)
+        
+        # More robust login with clear() first
+        driver.find_element(By.NAME, "name").clear()
+        driver.find_element(By.NAME, "name").send_keys("contoh")
+        driver.find_element(By.ID, "password").clear()
+        driver.find_element(By.ID, "password").send_keys("zU8@fR2k$9P")
+        driver.find_element(By.TAG_NAME, "form").submit()
+
+        # Debug: lihat URL setelah login
+        time.sleep(2)
+        print("Current URL after login:", driver.current_url)
+
+        # Tunggu hingga diarahkan ke dashboard
+        WebDriverWait(driver, 15).until(
+            EC.url_contains("/user/d")
+        )
+        print("Login succesful")
+
+        # Navigasi ke halaman informasi tanaman
+        menu_tanaman = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//a[contains(@href, 'informasitanaman')]"))
+        )
+        menu_tanaman.click()
+        time.sleep(1)
+        print("URL sekarang:", driver.current_url)
+
+        # 4 Verifikasi halaman tanaman terbuka
+        WebDriverWait(driver, 10).until(
+            EC.url_contains("informasitanaman")
+        )
+        print("Berhasil masuk ke halaman tanaman")
+
+        # 5 Pencarian tanaman
+        search_input = driver.find_element(By.NAME, "cari")
+        search_input.send_keys("Lidah Buaya")
+        driver.find_element(By.XPATH, "//button[contains(text(), 'Search')]").click()
+
+        # 6 verifikasi hasil pencarian
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//img[@alt='Lidah buaya']"))
+        )
+        tanaman = driver.find_elements(By.XPATH, "//img[@alt='Lidah buaya']")
+        assert len(tanaman) > 0, "Hasil pencarian tidak ditemukan"
+        print(f"Menemukan {len(tanaman)} hasil pencarian")
+
+        # 7 Buka detail tanaman pertama
+        tanaman[0].click()
+
+        # 8. Verifikasi halaman detail
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//p[contains(text(), 'Deskripsi')]"))
+        )
+
+        # Tutup Modal
+        driver.find_element(By.CLASS_NAME, "close-modal").click()
+
+    except Exception as e:
+        print(f"Test failedz: {str(e)}")
+        driver.save_screenshot("error_search_plant.png")
+        raise
+
+    finally:
+        driver.quit()
+        print("Browser closed")
+
+
