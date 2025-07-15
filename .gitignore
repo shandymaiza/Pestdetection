@@ -1,0 +1,9 @@
+# Abaikan semua file dan folder
+/*
+
+# Kecualikan folder Laravel dan flask
+!/Laravel/
+!/flask/
+
+# Kecualikan juga file .gitignore sendiri
+!.gitignore
